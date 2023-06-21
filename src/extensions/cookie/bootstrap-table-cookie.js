@@ -1,6 +1,5 @@
 /**
  * @author: Dennis Hernández
- * @webSite: http://djhvscf.github.io/Blog
  * @update zhixin wen <wenzhixin2010@gmail.com>
  */
 const Utils = $.fn.bootstrapTable.utils
@@ -12,6 +11,7 @@ const UtilsCookie = {
     pageNumber: 'bs.table.pageNumber',
     pageList: 'bs.table.pageList',
     columns: 'bs.table.columns',
+    hiddenColumns: 'bs.table.hiddenColumns',
     cardView: 'bs.table.cardView',
     searchText: 'bs.table.searchText',
     reorderColumns: 'bs.table.reorderColumns',
@@ -167,7 +167,7 @@ const UtilsCookie = {
   }
 }
 
-$.extend($.fn.bootstrapTable.defaults, {
+Object.assign($.fn.bootstrapTable.defaults, {
   cookie: false,
   cookieExpire: '2h',
   cookiePath: null,
@@ -178,7 +178,7 @@ $.extend($.fn.bootstrapTable.defaults, {
   cookiesEnabled: [
     'bs.table.sortOrder', 'bs.table.sortName', 'bs.table.sortPriority',
     'bs.table.pageNumber', 'bs.table.pageList',
-    'bs.table.columns', 'bs.table.searchText',
+    'bs.table.hiddenColumns', 'bs.table.columns', 'bs.table.searchText',
     'bs.table.filterControl', 'bs.table.filterBy',
     'bs.table.reorderColumns', 'bs.table.cardView'
   ],
@@ -199,7 +199,7 @@ $.extend($.fn.bootstrapTable.defaults, {
 $.fn.bootstrapTable.methods.push('getCookies')
 $.fn.bootstrapTable.methods.push('deleteCookie')
 
-$.extend($.fn.bootstrapTable.utils, {
+Object.assign($.fn.bootstrapTable.utils, {
   setCookie: UtilsCookie.setCookie,
   getCookie: UtilsCookie.getCookie
 })
@@ -235,7 +235,7 @@ $.BootstrapTable = class extends $.BootstrapTable {
 
       this.options.cookiesEnabled = typeof this.options.cookiesEnabled === 'string' ?
         this.options.cookiesEnabled.replace('[', '').replace(']', '')
-          .replace(/'/g, '').replace(/ /g, '').toLowerCase().split(',') :
+          .replace(/'/g, '').replace(/ /g, '').split(',') :
         this.options.cookiesEnabled
 
       if (this.options.filterControl) {
@@ -361,7 +361,7 @@ $.BootstrapTable = class extends $.BootstrapTable {
     if (!this.options.cookie) {
       return
     }
-    UtilsCookie.setCookie(this, UtilsCookie.cookieIds.columns, JSON.stringify(this.getVisibleColumns().map(column => column.field)))
+    UtilsCookie.setCookie(this, UtilsCookie.cookieIds.hiddenColumns, JSON.stringify(this.getHiddenColumns().map(column => column.field)))
   }
 
   _toggleAllColumns (...args) {
@@ -369,7 +369,7 @@ $.BootstrapTable = class extends $.BootstrapTable {
     if (!this.options.cookie) {
       return
     }
-    UtilsCookie.setCookie(this, UtilsCookie.cookieIds.columns, JSON.stringify(this.getVisibleColumns().map(column => column.field)))
+    UtilsCookie.setCookie(this, UtilsCookie.cookieIds.hiddenColumns, JSON.stringify(this.getHiddenColumns().map(column => column.field)))
   }
 
   toggleView () {
@@ -420,7 +420,7 @@ $.BootstrapTable = class extends $.BootstrapTable {
       return
     }
 
-    if ((this.options.cookieIdTable === '') || (this.options.cookieExpire === '')) {
+    if (this.options.cookieIdTable === '' || this.options.cookieExpire === '') {
       console.error('Configuration error. Please review the cookieIdTable and the cookieExpire property. If the properties are correct, then this browser does not support cookies.')
       this.options.cookie = false // Make sure that the cookie extension is disabled
       return
@@ -435,6 +435,7 @@ $.BootstrapTable = class extends $.BootstrapTable {
     const cardViewCookie = UtilsCookie.getCookie(this, UtilsCookie.cookieIds.cardView)
 
     const columnsCookieValue = UtilsCookie.getCookie(this, UtilsCookie.cookieIds.columns)
+    const hiddenColumnsCookieValue = UtilsCookie.getCookie(this, UtilsCookie.cookieIds.hiddenColumns)
 
     if (typeof columnsCookieValue === 'boolean' && !columnsCookieValue) {
       throw new Error('The cookie value of filterBy must be a json!')
@@ -446,6 +447,14 @@ $.BootstrapTable = class extends $.BootstrapTable {
       columnsCookie = JSON.parse(columnsCookieValue)
     } catch (e) {
       throw new Error('Could not parse the json of the columns cookie!', columnsCookieValue)
+    }
+
+    let hiddenColumnsCookie = {}
+
+    try {
+      hiddenColumnsCookie = JSON.parse(hiddenColumnsCookieValue)
+    } catch (e) {
+      throw new Error('Could not parse the json of the hidden columns cookie!', hiddenColumnsCookieValue)
     }
 
     try {
@@ -477,13 +486,28 @@ $.BootstrapTable = class extends $.BootstrapTable {
     // pageSize
     this.options.pageSize = pageListCookie ? pageListCookie === this.options.formatAllRows() ? pageListCookie : +pageListCookie : this.options.pageSize
     // searchText
-    if (UtilsCookie.isCookieEnabled(this, 'bs.table.searchText') && this.options.searchText === '') {
+    if (UtilsCookie.isCookieEnabled(this, UtilsCookie.cookieIds.searchText) && this.options.searchText === '') {
       this.options.searchText = searchTextCookie ? searchTextCookie : ''
     }
     // cardView
     this.options.cardView = cardViewCookie === 'true' ? cardViewCookie : false
 
-    if (columnsCookie) {
+    if (hiddenColumnsCookie) {
+      for (const column of this.columns) {
+        column.visible = !hiddenColumnsCookie.filter(columnField => {
+          if (this.isSelectionColumn(column)) {
+            return false
+          }
+
+          return columnField === column.field
+        }).length > 0 || !column.switchable
+      }
+    } else if (columnsCookie) {
+      /**
+       * This is needed for the old saved cookies!
+       * It can be removed in 2-3 Versions Later!!
+       * TODO: Remove this part (column cookie) some versions later e.g. 1.22.0
+       */
       for (const column of this.columns) {
         if (!column.switchable) {
           continue
@@ -493,11 +517,6 @@ $.BootstrapTable = class extends $.BootstrapTable {
           if (this.isSelectionColumn(column)) {
             return true
           }
-          /**
-           * This is needed for the old saved cookies or the table will show no columns!
-           * It can be removed in 2-3 Versions Later!!
-           * TODO: Remove this part some versions later e.g. 1.17.3
-           */
           if (columnField instanceof Object) {
             return columnField.field === column.field
           }
@@ -514,7 +533,7 @@ $.BootstrapTable = class extends $.BootstrapTable {
 
     $.each(UtilsCookie.cookieIds, (key, value) => {
       cookies[key] = UtilsCookie.getCookie(bootstrapTable, value)
-      if (key === 'columns') {
+      if (key === 'columns' || key === 'hiddenColumns' || key === 'sortPriority') {
         cookies[key] = JSON.parse(cookies[key])
       }
     })
@@ -542,7 +561,7 @@ $.BootstrapTable = class extends $.BootstrapTable {
             that.options.cookiePath ? `; path=${that.options.cookiePath}` : '',
             that.options.cookieDomain ? `; domain=${that.options.cookieDomain}` : '',
             that.options.cookieSecure ? '; secure' : '',
-            `;SameSite=${ that.options.cookieSameSite}`
+            `;SameSite=${that.options.cookieSameSite}`
           ].join('')
         }
         this._storage.getItem = function (cookieName) {
@@ -557,7 +576,7 @@ $.BootstrapTable = class extends $.BootstrapTable {
             '; expires=Thu, 01 Jan 1970 00:00:00 GMT',
             that.options.cookiePath ? `; path=${that.options.cookiePath}` : '',
             that.options.cookieDomain ? `; domain=${that.options.cookieDomain}` : '',
-            `;SameSite=${ that.options.cookieSameSite}`
+            `;SameSite=${that.options.cookieSameSite}`
           ].join('')
         }
         break

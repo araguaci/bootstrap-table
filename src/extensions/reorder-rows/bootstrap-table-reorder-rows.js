@@ -1,6 +1,5 @@
 /**
  * @author: Dennis Hernández
- * @webSite: http://djhvscf.github.io/Blog
  * @update zhixin wen <wenzhixin2010@gmail.com>
  */
 
@@ -8,11 +7,11 @@ const rowAttr = (row, index) => ({
   id: `customId_${index}`
 })
 
-$.extend($.fn.bootstrapTable.defaults, {
+Object.assign($.fn.bootstrapTable.defaults, {
   reorderableRows: false,
   onDragStyle: null,
   onDropStyle: null,
-  onDragClass: 'reorder_rows_onDragClass',
+  onDragClass: 'reorder-rows-on-drag-class',
   dragHandle: '>tbody>tr>td:not(.bs-checkbox)',
   useRowAttrFunc: false,
   // eslint-disable-next-line no-unused-vars
@@ -33,7 +32,7 @@ $.extend($.fn.bootstrapTable.defaults, {
   }
 })
 
-$.extend($.fn.bootstrapTable.Constructor.EVENTS, {
+Object.assign($.fn.bootstrapTable.events, {
   'reorder-row.bs.table': 'onReorderRow'
 })
 
@@ -116,6 +115,10 @@ $.BootstrapTable = class extends $.BootstrapTable {
     this.options.data.splice(index, 0, draggingRow)
 
     this.initSearch()
+
+    if (this.options.sidePagination === 'server') {
+      this.data = [...this.options.data]
+    }
 
     // Call the user defined function
     this.options.onReorderRowsDrop(droppedRow)

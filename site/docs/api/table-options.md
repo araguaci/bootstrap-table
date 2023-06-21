@@ -509,10 +509,25 @@ The table options are defined in `jQuery.fn.bootstrapTable.defaults`.
 - **Detail:**
 
   Escapes a string for insertion into HTML, replacing &, <, >, ", `, and ' characters.
+  To disable it for the column titles check the `escapeTitle` option.
 
 - **Default:** `false`
 
 - **Example:** [Table Escape](https://examples.bootstrap-table.com/#options/table-escape.html)
+
+## escapeTitle
+
+- **Attribute:** `data-escape-title`
+
+- **Type:** `Boolean`
+
+- **Detail:**
+
+  Toggles if the `escape` option should be applied to the column titles.
+
+- **Default:** `true`
+
+- **Example:** [Table Escape title](https://examples.bootstrap-table.com/#options/table-escape-title.html)
 
 ## filterOptions
 
@@ -1181,10 +1196,25 @@ The table options are defined in `jQuery.fn.bootstrapTable.defaults`.
   Notes:
   - If you want to use a custom search input, use the [searchSelector](https://bootstrap-table.com/docs/api/table-options/#searchSelector).
   - You can also search via regex using the [regexSearch](https://bootstrap-table.com/docs/api/table-options/#regexSearch) option.
+  - If you want to send searchable params to server-side pagination, use the [searchable](https://bootstrap-table.com/docs/api/table-options/#searchable) option.
 
 - **Default:** `false`
 
 - **Example:** [Table Search](https://examples.bootstrap-table.com/#options/table-search.html)
+
+## searchable
+
+- **Attribute:** `data-searchable`
+
+- **Type:** `Boolean`
+
+- **Detail:**
+
+  Set `true` to send [searchable params](https://bootstrap-table.com/docs/api/column-options/#searchable) to the server while using server-side pagination.
+
+- **Default:** `false`
+
+- **Example:** [Searchable](https://examples.bootstrap-table.com/#options/searchable.html)
 
 ## searchAccentNeutralise
 
@@ -1349,7 +1379,7 @@ The table options are defined in `jQuery.fn.bootstrapTable.defaults`.
 
 - **Detail:**
 
-  Set `true` to show the columns drop down list. We can set the [`switchable`](/docs/api/column-options/#switchable) column option to `false` to hide the columns item in the drop down list.
+  Set `true` to show the columns drop down list. We can set the [`switchable`](/docs/api/column-options/#switchable) column option to `false` to hide the columns item in the drop down list. The minimum number of selected columns can be controlled with the [minimumCountColumns](/docs/api/table-options/#minimumcountcolumns) table option.
 
 - **Default:** `false`
 
@@ -1527,6 +1557,15 @@ The table options are defined in `jQuery.fn.bootstrapTable.defaults`.
   * [Without server-side pagination](https://github.com/wenzhixin/bootstrap-table-examples/blob/master/json/data1.json)
   * [With server-side pagination](https://github.com/wenzhixin/bootstrap-table-examples/blob/master/json/data2.json)
 
+  **URL parameters:**
+
+  When `sidePagination` is set to `server`, the bootstrap table will make calls to the `url` with the following URL parameters:
+  
+  - `offset` with a value between 0 and `total` - 1, indicating the first record to include.
+  - `limit` with a value indicating the number of rows per page.
+
+  When implementing server-side pagination, you must implement a JSON view in a format like [this example](https://examples.wenzhixin.net.cn/examples/bootstrap_table/data). That view must take the URL parameter values indicated above and return records starting at the `offset` index and returns the number of records indicated by `limit`.  For example, if you want records 11-20, your view must obtain the `offset=10` and `limit=10` from the URL string and return records like [this example](https://examples.wenzhixin.net.cn/examples/bootstrap_table/data?offset=10&limit=10).
+
 - **Default:** `'client'`
 
 - **Example:** [Client Side Pagination](https://examples.bootstrap-table.com/#options/client-side-pagination.html) and [Server Side Pagination](https://examples.bootstrap-table.com/#options/server-side-pagination.html)
@@ -1601,6 +1640,20 @@ The table options are defined in `jQuery.fn.bootstrapTable.defaults`.
 
 - **Example:** [Sort Class](https://examples.bootstrap-table.com/#options/sort-class.html)
 
+## sortEmptyLast
+
+- **Attribute:** `data-sort-empty-last`
+
+- **Type:** `Boolean`
+
+- **Detail:**
+
+  Set `true` to sort `<empty string>`, `undefined` and `null` as last value.
+
+- **Default:** `false`
+
+- **Example:** [Sort Empty Last](https://examples.bootstrap-table.com/#options/sort-empty-last.html)
+
 ## sortName
 
 - **Attribute:** `data-sort-name`
@@ -1642,6 +1695,20 @@ The table options are defined in `jQuery.fn.bootstrapTable.defaults`.
 - **Default:** `false`
 
 - **Example:** [Sort Reset](https://examples.bootstrap-table.com/#options/sort-reset.html)
+
+## sortResetPage
+
+- **Attribute:** `data-sort-reset-page`
+
+- **Type:** `Boolean`
+
+- **Detail:**
+
+  Set `true` to reset the page number when sorting.
+
+- **Default:** `false`
+
+- **Example:** [Sort Reset Page](https://examples.bootstrap-table.com/#options/sort-reset-page.html)
 
 ## sortStable
 
@@ -1823,6 +1890,15 @@ The table options are defined in `jQuery.fn.bootstrapTable.defaults`.
 
   * [Without server-side pagination](https://github.com/wenzhixin/bootstrap-table-examples/blob/master/json/data1.json)
   * [With server-side pagination](https://github.com/wenzhixin/bootstrap-table-examples/blob/master/json/data2.json)
+
+  **URL parameters:**
+
+  When `sidePagination` is set to `server`, the bootstrap table will make calls to the `url` with the following URL parameters:
+  
+  - `offset` with a value between 0 and `total` - 1, indicating the first record to include.
+  - `limit` with a value indicating the number of rows per page.
+
+  When implementing server-side pagination, you must implement a JSON view in a format like [this example](https://examples.wenzhixin.net.cn/examples/bootstrap_table/data). That view must take the URL parameter values indicated above and return records starting at the `offset` index and returns the number of records indicated by `limit`.  For example, if you want records 11-20, your view must obtain the `offset=10` and `limit=10` from the URL string and return records like [this example](https://examples.wenzhixin.net.cn/examples/bootstrap_table/data?offset=10&limit=10).
 
 - **Default:** `undefined`
 

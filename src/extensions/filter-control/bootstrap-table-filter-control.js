@@ -1,15 +1,16 @@
 /**
  * @author: Dennis Hernández
- * @webSite: http://djhvscf.github.io/Blog
- * @version: v3.0.0
+ * @version: v3.0.1
  */
 
 import * as UtilsFilterControl from './utils.js'
 const Utils = $.fn.bootstrapTable.utils
 
-$.extend($.fn.bootstrapTable.defaults, {
+Object.assign($.fn.bootstrapTable.defaults, {
   filterControl: false,
   filterControlVisible: true,
+  filterControlMultipleSearch: false,
+  filterControlMultipleSearchDelimiter: ',',
   // eslint-disable-next-line no-unused-vars
   onColumnSearch (field, text) {
     return false
@@ -61,7 +62,7 @@ $.extend($.fn.bootstrapTable.defaults, {
   _usingMultipleSelect: false
 })
 
-$.extend($.fn.bootstrapTable.columnDefaults, {
+Object.assign($.fn.bootstrapTable.columnDefaults, {
   filterControl: undefined, // input, select, datepicker
   filterControlMultipleSelect: false,
   filterControlMultipleSelectOptions: {},
@@ -76,12 +77,12 @@ $.extend($.fn.bootstrapTable.columnDefaults, {
   filterCustomSearch: undefined
 })
 
-$.extend($.fn.bootstrapTable.Constructor.EVENTS, {
+Object.assign($.fn.bootstrapTable.events, {
   'column-search.bs.table': 'onColumnSearch',
   'created-controls.bs.table': 'onCreatedControls'
 })
 
-$.extend($.fn.bootstrapTable.defaults.icons, {
+Object.assign($.fn.bootstrapTable.defaults.icons, {
   filterControlSwitchHide: {
     bootstrap3: 'glyphicon-zoom-out icon-zoom-out',
     bootstrap5: 'bi-zoom-out',
@@ -94,7 +95,7 @@ $.extend($.fn.bootstrapTable.defaults.icons, {
   }[$.fn.bootstrapTable.theme] || 'fa-search-plus'
 })
 
-$.extend($.fn.bootstrapTable.locales, {
+Object.assign($.fn.bootstrapTable.locales, {
   formatFilterControlSwitch () {
     return 'Hide/Show controls'
   },
@@ -103,15 +104,12 @@ $.extend($.fn.bootstrapTable.locales, {
   },
   formatFilterControlSwitchShow () {
     return 'Show controls'
-  }
-})
-$.extend($.fn.bootstrapTable.defaults, $.fn.bootstrapTable.locales)
-
-$.extend($.fn.bootstrapTable.defaults, {
+  },
   formatClearSearch () {
     return 'Clear filters'
   }
 })
+Object.assign($.fn.bootstrapTable.defaults, $.fn.bootstrapTable.locales)
 
 $.fn.bootstrapTable.methods.push('triggerSearch')
 $.fn.bootstrapTable.methods.push('clearFilterControl')
@@ -216,7 +214,7 @@ $.BootstrapTable = class extends $.BootstrapTable {
 
         keys.forEach(key => {
           const thisColumn = that.columns[that.fieldsColumnsIndex[key]]
-          const rawFilterValue = (filterPartial[key] || '')
+          const rawFilterValue = filterPartial[key] || ''
           let filterValue = rawFilterValue.toLowerCase()
           let value = Utils.unescapeHTML(Utils.getItemField(item, key, false))
           let tmpItemIsExpected
@@ -225,57 +223,63 @@ $.BootstrapTable = class extends $.BootstrapTable {
             filterValue = Utils.normalizeAccent(filterValue)
           }
 
-          if (filterValue === '') {
-            tmpItemIsExpected = true
-          } else {
-            // Fix #142: search use formatted data
-            if (thisColumn) {
-              if (thisColumn.searchFormatter || thisColumn._forceFormatter) {
-                value = $.fn.bootstrapTable.utils.calculateObjectValue(
-                  that.header,
-                  that.header.formatters[$.inArray(key, that.header.fields)],
-                  [value, item, i],
-                  value
-                )
-              }
-            }
+          let filterValues = [filterValue]
 
-            if ($.inArray(key, that.header.fields) !== -1) {
-              if (value === undefined || value === null) {
-                tmpItemIsExpected = false
-              } else if (typeof value === 'object' && thisColumn.filterCustomSearch) {
-                itemIsExpected.push(that.isValueExpected(rawFilterValue, value, thisColumn, key))
-                return
-              } else if (typeof value === 'object' && Array.isArray(value)) {
-                value.forEach(objectValue => {
-                  if (tmpItemIsExpected) {
-                    return
-                  }
-
-                  if (this.options.searchAccentNeutralise) {
-                    objectValue = Utils.normalizeAccent(objectValue)
-                  }
-                  tmpItemIsExpected = that.isValueExpected(filterValue, objectValue, thisColumn, key)
-                })
-              } else if (typeof value === 'object' && !Array.isArray(value)) {
-                Object.values(value).forEach(objectValue => {
-                  if (tmpItemIsExpected) {
-                    return
-                  }
-
-                  if (this.options.searchAccentNeutralise) {
-                    objectValue = Utils.normalizeAccent(objectValue)
-                  }
-                  tmpItemIsExpected = that.isValueExpected(filterValue, objectValue, thisColumn, key)
-                })
-              } else if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
-                if (this.options.searchAccentNeutralise) {
-                  value = Utils.normalizeAccent(value)
-                }
-                tmpItemIsExpected = that.isValueExpected(filterValue, value, thisColumn, key)
-              }
-            }
+          if (
+            this.options.filterControlMultipleSearch
+          ) {
+            filterValues = filterValue.split(this.options.filterControlMultipleSearchDelimiter)
           }
+
+          filterValues.forEach(filterValue => {
+            if (tmpItemIsExpected === true) {
+              return
+            }
+
+            filterValue = filterValue.trim()
+
+            if (filterValue === '') {
+              tmpItemIsExpected = true
+            } else {
+              // Fix #142: search use formatted data
+              if (thisColumn) {
+                if (thisColumn.searchFormatter || thisColumn._forceFormatter) {
+                  value = $.fn.bootstrapTable.utils.calculateObjectValue(
+                    thisColumn,
+                    that.header.formatters[$.inArray(key, that.header.fields)],
+                    [value, item, i],
+                    value
+                  )
+                }
+              }
+
+              if ($.inArray(key, that.header.fields) !== -1) {
+                if (value === undefined || value === null) {
+                  tmpItemIsExpected = false
+                } else if (typeof value === 'object' && thisColumn.filterCustomSearch) {
+                  itemIsExpected.push(that.isValueExpected(rawFilterValue, value, thisColumn, key))
+                } else if (typeof value === 'object' && Array.isArray(value)) {
+                  value.forEach(objectValue => {
+                    if (tmpItemIsExpected) {
+                      return
+                    }
+
+                    tmpItemIsExpected = that.isValueExpected(filterValue, objectValue, thisColumn, key)
+                  })
+                } else if (typeof value === 'object' && !Array.isArray(value)) {
+                  Object.values(value).forEach(objectValue => {
+                    if (tmpItemIsExpected) {
+                      return
+                    }
+
+                    tmpItemIsExpected = that.isValueExpected(filterValue, objectValue, thisColumn, key)
+                  })
+                } else if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+                  tmpItemIsExpected = that.isValueExpected(filterValue, value, thisColumn, key)
+                }
+              }
+            }
+          })
 
           itemIsExpected.push(tmpItemIsExpected)
         })
@@ -288,18 +292,25 @@ $.BootstrapTable = class extends $.BootstrapTable {
   }
 
   isValueExpected (searchValue, value, column, key) {
-    let tmpItemIsExpected = false
+    let tmpItemIsExpected
 
-    if (column.filterStrictSearch) {
+    if (column.filterControl === 'select') {
+      value = Utils.removeHTML(value.toString().toLowerCase())
+    }
+
+    if (
+      column.filterStrictSearch ||
+      column.filterControl === 'select' && column.passed.filterStrictSearch !== false
+    ) {
       tmpItemIsExpected = value.toString().toLowerCase() === searchValue.toString().toLowerCase()
     } else if (column.filterStartsWithSearch) {
-      tmpItemIsExpected = (`${value}`).toLowerCase().indexOf(searchValue) === 0
+      tmpItemIsExpected = `${value}`.toLowerCase().indexOf(searchValue) === 0
     } else if (column.filterControl === 'datepicker') {
       tmpItemIsExpected = new Date(value).getTime() === new Date(searchValue).getTime()
     } else if (this.options.regexSearch) {
       tmpItemIsExpected = Utils.regexCompare(value, searchValue)
     } else {
-      tmpItemIsExpected = (`${value}`).toLowerCase().includes(searchValue)
+      tmpItemIsExpected = `${value}`.toLowerCase().includes(searchValue)
     }
 
     const largerSmallerEqualsRegex = /(?:(<=|=>|=<|>=|>|<)(?:\s+)?(\d+)?|(\d+)?(\s+)?(<=|=>|=<|>=|>|<))/gm
@@ -338,7 +349,7 @@ $.BootstrapTable = class extends $.BootstrapTable {
     }
 
     if (column.filterCustomSearch) {
-      const customSearchResult = Utils.calculateObjectValue(this, column.filterCustomSearch, [searchValue, value, key, this.options.data], true)
+      const customSearchResult = Utils.calculateObjectValue(column, column.filterCustomSearch, [searchValue, value, key, this.options.data], true)
 
       if (customSearchResult !== null) {
         tmpItemIsExpected = customSearchResult
@@ -516,7 +527,7 @@ $.BootstrapTable = class extends $.BootstrapTable {
 
     // Controls in fixed header
     if (this.options.height) {
-      const $fixedControls = $('.fixed-table-header table thead').find('.filter-control, .no-filter-control')
+      const $fixedControls = this.$tableContainer.find('.fixed-table-header table thead').find('.filter-control, .no-filter-control')
 
       $fixedControls.toggle(this.options.filterControlVisible)
       UtilsFilterControl.fixHeaderCSS(this)
@@ -526,7 +537,7 @@ $.BootstrapTable = class extends $.BootstrapTable {
     const text = this.options.showButtonText ? this.options.filterControlVisible ? this.options.formatFilterControlSwitchHide() : this.options.formatFilterControlSwitchShow() : ''
 
     this.$toolbar.find('>.columns').find('.filter-control-switch')
-      .html(`${Utils.sprintf(this.constants.html.icon, this.options.iconsPrefix, icon) } ${ text}`)
+      .html(`${Utils.sprintf(this.constants.html.icon, this.options.iconsPrefix, icon)} ${text}`)
   }
 
   triggerSearch () {

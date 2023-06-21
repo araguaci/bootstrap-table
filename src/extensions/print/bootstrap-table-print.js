@@ -48,14 +48,14 @@ function printPageBuilderDefault (table) {
   </html>`
 }
 
-$.extend($.fn.bootstrapTable.locales, {
+Object.assign($.fn.bootstrapTable.locales, {
   formatPrint () {
     return 'Print'
   }
 })
-$.extend($.fn.bootstrapTable.defaults, $.fn.bootstrapTable.locales)
+Object.assign($.fn.bootstrapTable.defaults, $.fn.bootstrapTable.locales)
 
-$.extend($.fn.bootstrapTable.defaults, {
+Object.assign($.fn.bootstrapTable.defaults, {
   showPrint: false,
   printAsFilteredAndSortedOnUI: true,
   printSortColumn: undefined,
@@ -65,13 +65,13 @@ $.extend($.fn.bootstrapTable.defaults, {
   }
 })
 
-$.extend($.fn.bootstrapTable.COLUMN_DEFAULTS, {
+Object.assign($.fn.bootstrapTable.columnDefaults, {
   printFilter: undefined,
   printIgnore: false,
   printFormatter: undefined
 })
 
-$.extend($.fn.bootstrapTable.defaults.icons, {
+Object.assign($.fn.bootstrapTable.defaults.icons, {
   print: {
     bootstrap3: 'glyphicon-print icon-share',
     bootstrap5: 'bi-printer',
@@ -133,10 +133,10 @@ $.BootstrapTable = class extends $.BootstrapTable {
     })
   }
 
-    doPrint(data) {
-      var _this2 = this
-      const formatValue = (row, i, column) => {
-      let value_ = Utils.getItemField(row, column.field, _this2.options.escape, column.escape);
+  doPrint (data) {
+    const _this2 = this
+    const formatValue = (row, i, column) => {
+      const value_ = Utils.getItemField(row, column.field, _this2.options.escape, column.escape)
       const value = Utils.calculateObjectValue(column,
         column.printFormatter || column.formatter,
         [value_, row, i], value_)
@@ -152,7 +152,7 @@ $.BootstrapTable = class extends $.BootstrapTable {
       for (const columns of columnsArray) {
         html.push('<tr>')
         for (let h = 0; h < columns.length; h++) {
-          if (!columns[h].printIgnore) {
+          if (!columns[h].printIgnore && columns[h].visible) {
             html.push(
               `<th
               ${Utils.sprintf(' rowspan="%s"', columns[h].rowspan)}
@@ -177,7 +177,7 @@ $.BootstrapTable = class extends $.BootstrapTable {
             for (let cs = 0; cs < currentMergedCell.colspan; cs++) {
               const col = currentMergedCell.col + cs
 
-              dontRender.push(`${row },${ col}`)
+              dontRender.push(`${row},${col}`)
             }
           }
         }
@@ -210,10 +210,10 @@ $.BootstrapTable = class extends $.BootstrapTable {
           }
 
           if (
-            !columns[j].printIgnore && columns[j].field &&
+            !columns[j].printIgnore && columns[j].visible && columns[j].field &&
               (
-                !dontRender.includes(`${i },${ j}`) ||
-                (rowspan > 0 && colspan > 0)
+                !dontRender.includes(`${i},${j}`) ||
+                rowspan > 0 && colspan > 0
               )
           ) {
             if (rowspan > 0 && colspan > 0) {
@@ -234,7 +234,7 @@ $.BootstrapTable = class extends $.BootstrapTable {
 
         for (const columns of columnsArray) {
           for (let h = 0; h < columns.length; h++) {
-            if (!columns[h].printIgnore) {
+            if (!columns[h].printIgnore && columns[h].visible) {
               const footerData = Utils.trToData(columns, this.$el.find('>tfoot>tr'))
               const footerValue = Utils.calculateObjectValue(columns[h], columns[h].footerFormatter, [data], footerData[0] && footerData[0][columns[h].field] || '')
 
@@ -255,8 +255,8 @@ $.BootstrapTable = class extends $.BootstrapTable {
       }
       let reverse = sortOrder !== 'asc'
 
-      reverse = -((+reverse) || -1)
-      return data.sort((a, b) => reverse * (a[colName].localeCompare(b[colName])))
+      reverse = -(+reverse || -1)
+      return data.sort((a, b) => reverse * a[colName].localeCompare(b[colName]))
     }
 
     const filterRow = (row, filters) => {

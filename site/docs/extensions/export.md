@@ -90,8 +90,6 @@ This is an important link to check out as some file types may require extra step
 
 - **Default:** `['json', 'xml', 'csv', 'txt', 'sql', 'excel']`
 
-- **Default:** `{}`
-
 ### Icons
 
 - export: `'glyphicon-export icon-share'`
@@ -135,6 +133,16 @@ This is an important link to check out as some file types may require extra step
   Fired when the data is exported, the parameter contain:
 
   * `exportedRows`: The exported rows (depends on exportDataType)
+
+### onExportStarted
+
+- **jQuery Event:** `export-started.bs.table`
+
+- **Parameter:** `undefined`
+
+- **Detail:**
+
+  Fired before the data will be collected and exported.
 
 ## Methods
 

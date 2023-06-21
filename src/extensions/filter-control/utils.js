@@ -5,7 +5,7 @@ const searchControls = 'select, input:not([type="checkbox"]):not([type="radio"])
 export function getInputClass (that, isSelect = false) {
   const formControlClass = isSelect ? that.constants.classes.select : that.constants.classes.input
 
-  return that.options.iconSize ? Utils.sprintf('%s-%s', formControlClass, that.options.iconSize) : formControlClass
+  return that.options.iconSize ? Utils.sprintf('%s %s-%s', formControlClass, formControlClass, that.options.iconSize) : formControlClass
 }
 
 export function getOptionsFromSelectControl (selectControl) {
@@ -18,7 +18,7 @@ export function getControlContainer (that) {
   }
 
   if (that.options.height && that._initialized) {
-    return $('.fixed-table-header table thead')
+    return that.$tableContainer.find('.fixed-table-header table thead')
   }
 
   return that.$header
@@ -61,23 +61,23 @@ export function existOptionInSelectControl (selectControl, value) {
 }
 
 export function addOptionToSelectControl (selectControl, _value, text, selected, shouldCompareText) {
-  let value = (_value === undefined || _value === null) ? '' : _value.toString().trim()
+  let value = _value === undefined || _value === null ? '' : _value.toString().trim()
 
-  value = Utils.removeHTML(value)
-  text = Utils.removeHTML(text)
+  value = Utils.removeHTML(Utils.unescapeHTML(value))
+  text = Utils.removeHTML(Utils.unescapeHTML(text))
 
   if (existOptionInSelectControl(selectControl, value)) {
     return
   }
 
-  const isSelected = shouldCompareText ? (value === selected || text === selected) : value === selected
+  const isSelected = shouldCompareText ? value === selected || text === selected : value === selected
 
   const option = new Option(text, value, false, isSelected)
 
   selectControl.get(0).add(option)
 }
 
-export function sortSelectControl (selectControl, orderBy) {
+export function sortSelectControl (selectControl, orderBy, options) {
   const $selectControl = selectControl.get(0)
 
   if (orderBy === 'server') {
@@ -94,7 +94,7 @@ export function sortSelectControl (selectControl, orderBy) {
   }
 
   tmpAry.sort((a, b) => {
-    return Utils.sort(a[0], b[0], orderBy === 'desc' ? -1 : 1)
+    return Utils.sort(a[0], b[0], orderBy === 'desc' ? -1 : 1, options)
   })
   while ($selectControl.options.length > 0) {
     $selectControl.options[0] = null
@@ -113,11 +113,10 @@ export function fixHeaderCSS ({ $tableHeader }) {
 
 export function getElementClass ($element) {
   return $element.attr('class')
-    .replace('form-control', '')
-    .replace('form-select', '')
-    .replace('focus-temp', '')
-    .replace('search-input', '')
-    .trim()
+    .split(' ')
+    .filter(function (className) {
+      return className.startsWith('bootstrap-table-filter-control-')
+    })
 }
 
 export function getCursorPosition (el) {
@@ -146,14 +145,14 @@ export function cacheValues (that) {
 
   searchControls.each(function () {
     let $field = $(this)
-    const fieldClass = getElementClass($field)
+    const fieldClass = escapeID(getElementClass($field))
 
     if (that.options.height && !that.options.filterControlContainer) {
-      $field = $(`.fixed-table-header .${fieldClass}`)
+      $field = that.$el.find(`.fixed-table-header .${fieldClass}`)
     } else if (that.options.filterControlContainer) {
       $field = $(`${that.options.filterControlContainer} .${fieldClass}`)
     } else {
-      $field = $(`.${fieldClass}`)
+      $field = that.$el.find(`.${fieldClass}`)
     }
 
     that._valuesFilterControl.push({
@@ -177,8 +176,7 @@ export function setCaretPosition (elem, caretPos) {
         elem.setSelectionRange(caretPos, caretPos)
       }
     }
-  }
-  catch (ex) {
+  } catch (ex) {
     // ignored
   }
 }
@@ -307,7 +305,7 @@ export function initFilterSelectControls (that) {
         const formatter = that.options.editable && column.editable ? column._formatter : that.header.formatters[j]
         let formattedValue = Utils.calculateObjectValue(that.header, formatter, [fieldValue, data[i], i], fieldValue)
 
-        if (!fieldValue) {
+        if (fieldValue === undefined || fieldValue === null) {
           fieldValue = formattedValue
           column._forceFormatter = true
         }
@@ -335,7 +333,7 @@ export function initFilterSelectControls (that) {
       }
 
       if (that.options.sortSelectOptions) {
-        sortSelectControl(selectControl, 'asc')
+        sortSelectControl(selectControl, 'asc', that.options)
       }
     }
   })
@@ -359,7 +357,10 @@ export function createControls (that, header) {
   $.each(that.columns, (_, column) => {
     html = []
 
-    if (!column.visible) {
+    if (
+      !column.visible &&
+      !(that.options.filterControlContainer && $(`.bootstrap-table-filter-control-${escapeID(column.field)}`).length >= 1)
+    ) {
       return
     }
 
@@ -367,7 +368,7 @@ export function createControls (that, header) {
       html.push('<div class="no-filter-control"></div>')
     } else if (that.options.filterControlContainer) {
       // Use a filter control container instead of th
-      const $filterControls = $(`.bootstrap-table-filter-control-${column.field}`)
+      const $filterControls = $(`.bootstrap-table-filter-control-${escapeID(column.field)}`)
 
       $.each($filterControls, (_, filterControl) => {
         const $filterControl = $(filterControl)
@@ -408,7 +409,9 @@ export function createControls (that, header) {
         that.filterColumnsPartial = {}
       }
 
-      that.filterColumnsPartial[column.field] = column.filterDefault
+      if (!(column.field in that.filterColumnsPartial)) {
+        that.filterColumnsPartial[column.field] = column.filterDefault
+      }
     }
 
     $.each(header.find('th'), (_, th) => {
@@ -472,13 +475,12 @@ export function createControls (that, header) {
       if (Array.isArray(value)) {
         for (let i = 0; i < value.length; i++) {
           if (value[i] && value[i].length > 0 && value[i].trim()) {
-            $selectControl.find(`option[value="${ value[i] }"]`).attr('selected', true)
+            $selectControl.find(`option[value="${value[i]}"]`).attr('selected', true)
           }
         }
-      }
-      else if (value && value.length > 0 && value.trim()) {
+      } else if (value && value.length > 0 && value.trim()) {
         $selectControl.find('option[selected]').removeAttr('selected')
-        $selectControl.find(`option[value="${ value }"]`).attr('selected', true)
+        $selectControl.find(`option[value="${value}"]`).attr('selected', true)
       } else {
         $selectControl.find('option[selected]').removeAttr('selected')
       }
@@ -520,7 +522,7 @@ export function createControls (that, header) {
     if (header.find('.date-filter-control').length > 0) {
       $.each(that.columns, (i, { filterDefault, filterControl, field, filterDatepickerOptions }) => {
         if (filterControl !== undefined && filterControl.toLowerCase() === 'datepicker') {
-          const $datepicker = header.find(`.date-filter-control.bootstrap-table-filter-control-${field}`)
+          const $datepicker = header.find(`.date-filter-control.bootstrap-table-filter-control-${escapeID(field)}`)
 
           if (filterDefault) {
             $datepicker.value(filterDefault)
@@ -585,7 +587,7 @@ export function syncHeaders (that) {
   if (!that.options.height) {
     return
   }
-  const fixedHeader = $('.fixed-table-header table thead')
+  const fixedHeader = that.$tableContainer.find('.fixed-table-header table thead')
 
   if (fixedHeader.length === 0) {
     return
@@ -595,7 +597,7 @@ export function syncHeaders (that) {
     if (element.classList[0] !== 'bs-checkbox') {
       const $element = $(element)
       const $field = $element.data('field')
-      const $fixedField = $(`th[data-field='${$field}']`).not($element)
+      const $fixedField = that.$tableContainer.find(`th[data-field='${$field}']`).not($element)
 
       const input = $element.find('input')
       const fixedInput = $fixedField.find('input')
@@ -619,7 +621,7 @@ const filterDataMethods = {
     }
 
     if (that.options.sortSelectOptions) {
-      sortSelectControl(selectControl, filterOrderBy)
+      sortSelectControl(selectControl, filterOrderBy, that.options)
     }
 
     setValues(that)
@@ -641,7 +643,7 @@ const filterDataMethods = {
     }
 
     if (that.options.sortSelectOptions) {
-      sortSelectControl(selectControl, filterOrderBy)
+      sortSelectControl(selectControl, filterOrderBy, that.options)
     }
 
     setValues(that)
@@ -659,7 +661,7 @@ const filterDataMethods = {
     }
 
     if (that.options.sortSelectOptions) {
-      sortSelectControl(selectControl, filterOrderBy)
+      sortSelectControl(selectControl, filterOrderBy, that.options)
     }
 
     setValues(that)
@@ -675,7 +677,7 @@ const filterDataMethods = {
         }
 
         if (that.options.sortSelectOptions) {
-          sortSelectControl(selectControl, filterOrderBy)
+          sortSelectControl(selectControl, filterOrderBy, that.options)
         }
 
         setValues(that)
@@ -691,7 +693,7 @@ const filterDataMethods = {
     }
 
     if (that.options.sortSelectOptions) {
-      sortSelectControl(selectControl, filterOrderBy)
+      sortSelectControl(selectControl, filterOrderBy, that.options)
     }
 
     setValues(that)

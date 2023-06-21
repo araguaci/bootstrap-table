@@ -34,9 +34,9 @@ This extension adds the ability to create a custom view to display the data.
 
 - **Default:** `false`
 
-### showCustomView
+### customViewDefaultView
 
-- **Attribute:** `data-show-custom-view`
+- **Attribute:** `data-custom-view-default-view`
 
 - **Type:** `Boolean`
 
@@ -46,9 +46,9 @@ This extension adds the ability to create a custom view to display the data.
 
 - **Default:** `false`
 
-### showCustomViewButton
+### showCustomView
 
-- **Attribute:** `data-show-custom-view-button`
+- **Attribute:** `data-show-custom-view`
 
 - **Type:** `Boolean`
 
@@ -60,13 +60,22 @@ This extension adds the ability to create a custom view to display the data.
 
 ### Icons
 
-- Toggle custom view:
-    * Bootstrap3: `glyphicon glyphicon-eye-open`
+- customViewOn: 
+    * Bootstrap3: `glyphicon glyphicon-list`
     * Bootstrap4: `fa fa-eye`
+    * bootstrap5: 'bi-eye',
     * Semantic: `fa fa-eye`
     * Foundation: `fa fa-eye`
     * Bulma: `fa fa-eye`
     * Materialize: `remove_red_eye`
+- customViewOff:
+    * Bootstrap3: `glyphicon glyphicon-thumbnails`
+    * Bootstrap4: `fa fa-th`
+    * bootstrap5: 'bi-grid',
+    * Semantic: `fa fa-th`
+    * Foundation: `fa fa-th`
+    * Bulma: `fa fa-th`
+    * Materialize: `grid_on`
 
 ## Methods
 
@@ -76,18 +85,50 @@ This extension adds the ability to create a custom view to display the data.
 
 ## Events
 
-### onCustomViewPreBody(custom-view-pre-body.bs.table)
+### onCustomViewPreBody
 
-* Fires before the custom view was rendered.
+- **jQuery Event:** `custom-view-pre-body.bs.table`
 
-### onCustomViewPostBody(custom-view-post-body.bs.table)
+- **Parameter:** `undefined`
 
-* Fires after the custom view was rendered.
+- **Detail:**
+
+  It fires before the custom view was rendered.
+
+### onCustomViewPostBody
+
+- **jQuery Event:** `custom-view-post-body.bs.table`
+
+- **Parameter:** `undefined`
+
+- **Detail:**
+
+  It fires after the custom view was rendered.
+
+### onToggleCustomView
+
+* It fires when the custom view is toggled.
+
+- **jQuery Event:** `toggle-custom-view.bs.table`
+
+- **Parameter:** `state`
+
+- **Detail:**
+
+  It fires when the custom view is toggled:
+
+  * `state`: the new custom view state (`true`-> Custom view is enabled, `false` -> Custom view is disabled )
 
 ## Localizations
 
-### formatToggleCustomView
+### formatToggleCustomViewOn
 
 - **type:** `Function`
 
-- **Default:** `function () { return "Toggle custom view" }`
+- **Default:** `function () { return "Show custom view" }`
+
+### formatToggleCustomViewOff
+
+- **type:** `Function`
+
+- **Default:** `function () { return "Hide custom view" }`

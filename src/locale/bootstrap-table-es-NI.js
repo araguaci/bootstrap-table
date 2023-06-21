@@ -1,6 +1,6 @@
 /**
  * Bootstrap Table Spanish (Nicaragua) translation
- * Author: Dennis Hernández (http://djhvscf.github.io/Blog/)
+ * Author: Dennis Hernández
  */
 
 $.fn.bootstrapTable.locales['es-NI'] = {
@@ -100,4 +100,4 @@ $.fn.bootstrapTable.locales['es-NI'] = {
   }
 }
 
-$.extend($.fn.bootstrapTable.defaults, $.fn.bootstrapTable.locales['es-NI'])
+Object.assign($.fn.bootstrapTable.defaults, $.fn.bootstrapTable.locales['es-NI'])
